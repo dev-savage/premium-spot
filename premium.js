@@ -231,12 +231,8 @@ const playTrack = async (driver, hours) => {
 			const navigator = driver.navigate();
 			navigator.refresh();
 			await waitFor(10000);
-			await ensurePlaying(driver);
-			await waitFor(randomTime(3000, 2000));
-			await ensureShuffleOn(driver);
-			await waitFor(randomTime(3000, 2000));
-			await ensureLoopOn(driver);
 		}
+		await ensurePlaying(driver);
 		await ensureShuffleOn(driver);
 		await ensureLoopOn(driver);
 		await waitFor(MINUTE);
