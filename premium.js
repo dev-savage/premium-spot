@@ -224,7 +224,6 @@ const playTrack = async (driver, hours) => {
 	await ensureLoopOn(driver);
 
 	let minutesToPlay = hours * 60;
-	minutesToPlay = 2;
 	for (let i = 0; i < minutesToPlay; i++) {
 		console.log("Error check iteration: " + i + " of: " + minutesToPlay);
 		let error = await checkError(driver);
