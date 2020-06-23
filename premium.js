@@ -120,7 +120,7 @@ const login = async (driver, user) => {
 		await waitFor(randomTime(2000, 1000));
 		const error = await driver.findElements(By.className("alert-warning"));
 		if (error.length > 0) {
-			reject("bad login");
+			reject("bad login: " + user.user + " " + user.pass);
 		} else {
 			resolve();
 		}
@@ -133,24 +133,6 @@ const browseToPlaylist = (driver, playlist) => {
 			.get(playlist)
 			.then(resolve())
 			.catch((e) => reject("Failed to get playlist"));
-	});
-};
-
-const clickPlayButton = (driver) => {
-	const className = "spoticon-play-16";
-	const pauseClass = "spoticon-pause-16";
-	// const className = "_11f5fc88e3dec7bfec55f7f49d581d78-scss";
-	return new Promise((resolve, reject) => {
-		driver
-			.wait(until.elementLocated(By.className(className)))
-			.then(() => {
-				driver.findElement(By.className(className)).click();
-			})
-			.then(() => {
-				console.log("Play Button Clicked");
-				resolve();
-			})
-			.catch(() => reject("Failed to click play button"));
 	});
 };
 
@@ -210,13 +192,27 @@ const ensureLoopOn = (driver) => {
 	});
 };
 
+const ensureLoggedIn = async (driver, account) => {
+	const classNames =
+		"_2221af4e93029bedeab751d04fab4b8b-scss _1edf52628d509e6baded2387f6267588-scss";
+	const logInButtons = await driver.findElements(By.className(classNames));
+	if (logInButtons.length > 0) {
+		console.log("Having to relog in: " + account.user);
+		await logInButtons[0].click();
+		await waitFor(5000);
+		await login(driver, account);
+	}
+};
+
 const checkError = async (driver) => {
 	const errorClass = "error-screen";
 	let errors = await driver.findElements(By.className(errorClass));
 	if (errors.length > 0) return true;
 	return false;
 };
-const playTrack = async (driver, hours) => {
+const playTrack = async (driver, account, hours) => {
+	await ensureLoggedIn(driver, account);
+	await waitFor(randomTime(3000, 2000));
 	await ensurePlaying(driver);
 	await waitFor(randomTime(3000, 2000));
 	await ensureShuffleOn(driver);
@@ -225,16 +221,21 @@ const playTrack = async (driver, hours) => {
 
 	let minutesToPlay = hours * 60;
 	for (let i = 0; i < minutesToPlay; i++) {
-		console.log("Error check iteration: " + i + " of: " + minutesToPlay);
+		console.log(i + " / " + minutesToPlay + " minutes played");
 		let error = await checkError(driver);
 		if (error) {
 			const navigator = driver.navigate();
 			navigator.refresh();
 			await waitFor(10000);
 		}
+		await ensureLoggedIn(driver, account);
+		console.log(account.user + " logged in.");
 		await ensurePlaying(driver);
+		console.log(account.user + " is playing.");
 		await ensureShuffleOn(driver);
+		console.log(account.user + " has shuffle.");
 		await ensureLoopOn(driver);
+		console.log(account.user + " has loop.");
 		await waitFor(MINUTE);
 	}
 
@@ -264,17 +265,19 @@ const run = async (driver, account) => {
 	try {
 		await browseToPlaylist(driver, account.p1);
 		await waitFor(randomTime(3000, 2000));
-		await playTrack(driver, 22);
+		await playTrack(driver, account, 22);
 
 		await browseToPlaylist(driver, account.p2);
 		await waitFor(randomTime(3000, 2000));
-		await playTrack(driver, 2);
+		await playTrack(driver, account, 2);
 
 		await waitFor(30000);
 
 		run(driver, account);
 	} catch (e) {
 		console.log(e);
+		waitFor(10000);
+		run(driver, account);
 	}
 };
 
